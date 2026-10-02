@@ -1,0 +1,189 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Gradation0
+
+//@version=6
+indicator("Indicators Needed", overlay = true, format = format.price, precision = 5)
+
+//Inputs
+//EMA Inputs
+PlotEMA1to10 = input.bool(true, title = "Plot EMA")
+plot30 = input.bool(false, title = "Plot 30 EMA", group = "plotting")
+EMA1Length = input.int(defval = 5, title = "EMA 1 Length", group = "EMA Set 1")
+EMA2Length = input.int(defval = 7, title = "EMA 2 Length", group = "EMA Set 1")
+EMA3Length = input.int(defval = 9, title = "EMA 3 Length", group = "EMA Set 1")
+EMA4Length = input.int(defval = 12, title = "EMA 4 Length", group = "EMA Set 1")
+EMA5Length = input.int(defval = 20, title = "EMA 5 Length", group = "EMA Set 1")
+EMA6Length = input.int(defval = 30, title = "EMA 6 Length", group = "EMA Set 1")
+EMA7Length = input.int(defval = 36, title = "EMA 7 Length", group = "EMA Set 1")
+EMA8Length = input.int(defval = 60, title = "EMA 8 Length", group = "EMA Set 1")
+EMA9Length = input.int(defval = 90, title = "EMA 9 Length", group = "EMA Set 1")
+EMA10Length = input.int(defval = 180, title = "EMA 10 Length", group = "EMA Set 1")
+//HMA Inputs
+length = input.int(9, "Length", minval = 2, group = "HMA")
+src = input(close, "Source", group = "HMA")
+// zone inputs
+MACD_fast_length = input.int(title="MACD Fast Length", defval=7, group = "Zone")
+MACD_slow_length = input.int(title="MACD Slow Length", defval=26, group = "Zone")
+MACD_src = input.source(title="MACD Source", defval=close, group = "Zone")
+MACD_signal_length = input.int(title="MACD Signal Smoothing", minval = 1, maxval = 50, defval = 9, group = "Zone")
+MACD_sma_source = input.bool(title="MACD Simple MA(Oscillator)", defval=false, group = "Zone")
+MACD_sma_signal = input.bool(title="MACD Simple MA(Signal Line)", defval=false, group = "Zone")
+//PC
+PClength1 = input(9, group = "PC 1")
+offsetlength1 = input(0, group = "PC 1")
+PCColor1 = input.color(defval = color.black, title = "Price Channel 1 Color", group = "PC 1")
+PClength2 = input(26, group = "PC 2")
+offsetlength2 = input(0, group = "PC 2")
+PCColor2 = input.color(defval = color.gray, title = "Price Channel 2 Color", group = "PC 2")
+PClength3 = input(52, group = "PC 3")
+offsetlength3 = input(0, group = "PC 3")
+PCColor3 = input.color(defval = color.green, title = "Price Channel 3 Color", group = "PC 3")
+//Ichimoku
+UseIchimoku = input.bool(defval = true, title = "Use Ichimoku", group = "Ichimoku", tooltip = "전환선이 위(롱)/아래(숏)으로 꺾였을 시 롱/숏 표시")
+PlotIchimoku = input.bool(defval = true, title = "Plot Ichimoku", group = "Ichimoku", tooltip = "Show Ichimoku")
+conversionPeriods = input.int(9, minval=1, title="Conversion Line Length", group = "Ichimoku")
+basePeriods = input.int(26, minval=1, title="Base Line Length", group = "Ichimoku")
+laggingSpan2Periods = input.int(52, minval=1, title="Leading Span B Length", group = "Ichimoku")
+displacement = input.int(26, minval=1, title="Lagging Span", group = "Ichimoku")
+//Hull Suite
+UseHullSuite = input.bool(defval = false, title = "Use Hull Suite", group = "Hull Suite", tooltip = "캔들이 띠 위에서 마감했을 시 롱/숏 표시")
+PlotHullSuite = input.bool(defval = true, title = "Plot Hull Suite", group = "Hull Suite", tooltip = "Show Hull Suite")
+htf = input.timeframe("240", title="Higher timeframe", group = "Hull Suite")
+visualSwitch = input.bool(true, title="Show as a Band?", group = "Hull Suite")
+thicknessSwitch = input.int(1, title="Line Thickness", group = "Hull Suite")
+transpSwitch = input.int(40, title="Band Transparency", step=5, group = "Hull Suite")
+
+
+
+//Mark H and D
+open1H = request.security(syminfo.tickerid, "60", open)
+close1H = request.security(syminfo.tickerid, "60", close)
+open1D = request.security(syminfo.tickerid, "D", open)
+close1D = request.security(syminfo.tickerid, "D", close)
+
+Mark1HColor = input.color(defval = color.rgb(27, 108, 201), title = "Time Mark 1H Color", group = "Time Mark")
+Mark1DColor = input.color(defval = color.rgb(150, 24, 24), title = "Time Mark 1D Color", group = "Time Mark")
+Mark1HWidth = input.int(defval = 2, title = "Time Mark 1H Width", group = "Time Mark")
+Mark1DWidth = input.int(defval = 3, title = "Time Mark 1D Width", group = "Time Mark")
+
+line1H = line.new(x1=bar_index[1], y1=open1H, x2=bar_index, y2=open1H, color=Mark1HColor, width=Mark1HWidth)
+line1D = line.new(x1=bar_index[1], y1=open1D, x2=bar_index, y2=open1D, color=Mark1DColor, width=Mark1DWidth)
+
+if (bar_index > 1)
+    line.delete(line1H[1])
+    line.delete(line1D[1])
+
+
+//EMA
+PlottingEMA1 = ta.ema(close, EMA1Length)
+PlottingEMA2 = ta.ema(close, EMA2Length)
+PlottingEMA3 = ta.ema(close, EMA3Length)
+PlottingEMA4 = ta.ema(close, EMA4Length)
+PlottingEMA5 = ta.ema(close, EMA5Length)
+PlottingEMA6 = ta.ema(close, EMA6Length)
+PlottingEMA7 = ta.ema(close, EMA7Length)
+PlottingEMA8 = ta.ema(close, EMA8Length)
+PlottingEMA9 = ta.ema(close, EMA9Length)
+PlottingEMA10 = ta.ema(close, EMA10Length)
+
+plot(PlotEMA1to10 ? PlottingEMA1 : na, color = color.rgb(128,25,34), title = "EMA 1")
+plot(PlotEMA1to10 ? PlottingEMA2 : na, color = color.rgb(165, 165, 165), linewidth = 2, title = "EMA 2")
+plot(PlotEMA1to10 ? PlottingEMA3 : na, color = color.rgb(244,143,177), linewidth = 2, title = "EMA 3")
+plot(PlotEMA1to10 ? PlottingEMA4 : na, color = color.rgb(244,152,1), linewidth = 2, title = "EMA 4")
+plot(PlotEMA1to10 ? PlottingEMA5 : na, color = color.rgb(58, 212, 66), linewidth = 2, title = "EMA 5")
+plot(PlotEMA1to10 ? (plot30 ? PlottingEMA6 : na) : na, color = color.red, linewidth = 3, title = "EMA 6")
+plot(PlotEMA1to10 ? PlottingEMA7 : na, color = color.rgb(255, 105, 105), linewidth = 3, title = "EMA 7")
+plot(PlotEMA1to10 ? PlottingEMA8 : na, color = color.rgb(154, 113, 224), linewidth = 3, title = "EMA 8")
+plot(PlotEMA1to10 ? PlottingEMA9 : na, color = color.rgb(31, 100, 60), linewidth = 4, title = "EMA 9")
+plot(PlotEMA1to10 ? PlottingEMA10 : na, color = color.rgb(26, 58, 165), linewidth = 4, title = "EMA 10")
+
+
+//HMA
+hullma = ta.wma(2*ta.wma(src, length/2)-ta.wma(src, length), math.floor(math.sqrt(length)))
+plot(hullma, "HMA", color.red, linewidth = 3)
+
+
+//Zone
+MACD_fast_ma = MACD_sma_source ? ta.sma(MACD_src, MACD_fast_length) : ta.ema(MACD_src, MACD_fast_length)
+MACD_slow_ma = MACD_sma_source ? ta.sma(MACD_src, MACD_slow_length) : ta.ema(MACD_src, MACD_slow_length)
+MACD_macd = MACD_fast_ma - MACD_slow_ma
+MACD_signal = MACD_sma_signal ? ta.sma(MACD_macd, MACD_signal_length) : ta.ema(MACD_macd, MACD_signal_length)
+bgcolor( MACD_macd > MACD_signal ? color.rgb(78, 180, 81, 85):color.rgb(255, 82, 97, 85) , title="macd Background")
+
+
+//PC
+highprice1 = ta.highest(high, PClength1)
+lowprice1 = ta.lowest(low, PClength1)
+centerline1 = (ta.highest(high, PClength1) +  ta.lowest(low, PClength1)) / 2
+plot(highprice1, color=PCColor1, title="Highprice Line 1", offset=offsetlength1, linewidth = 4)
+plot(lowprice1, color=PCColor1, title="Lowprice Line 1", offset=offsetlength1, linewidth = 4)
+
+highprice2 = ta.highest(high, PClength2)
+lowprice2 = ta.lowest(low, PClength2)
+centerline2 = (ta.highest(high, PClength2) +  ta.lowest(low, PClength2)) / 2
+plot(highprice2, color=PCColor2, title="Highprice Line 2", offset=offsetlength1, linewidth = 4)
+plot(lowprice2, color=PCColor2, title="Lowprice Line 2", offset=offsetlength1, linewidth = 4)
+
+highprice3 = ta.highest(high, PClength3)
+lowprice3 = ta.lowest(low, PClength3)
+centerline3 = (ta.highest(high, PClength3) +  ta.lowest(low, PClength3)) / 2
+plot(highprice3, color=PCColor3, title="Highprice Line 3", offset=offsetlength3, linewidth = 4)
+plot(lowprice3, color=PCColor3, title="Lowprice Line 3", offset=offsetlength3, linewidth = 4)
+
+
+//Ichimoku
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+
+plot(PlotIchimoku ? conversionLine : na, color=color.aqua, title="Conversion Line", linewidth = 2)
+// plot(PlotIchimoku ? baseLine : na, color=#B71C1C, title="Base Line")
+plot(PlotIchimoku ? close : na, offset = -displacement + 1, color=color.rgb(51, 41, 190), title="Lagging Span")
+p1 = plot(PlotIchimoku ? leadLine1 : na, offset = displacement - 1, color=color.rgb(132, 184, 134), title="Leading Span A")
+p2 = plot(PlotIchimoku ? leadLine2 : na, offset = displacement - 1, color=#EF9A9A, title="Leading Span B")
+plot(leadLine1 > leadLine2 ? (PlotIchimoku ? leadLine1 : na) : leadLine2, offset = displacement - 1, title = "Kumo Cloud Upper Line", display = display.none) 
+plot(leadLine1 < leadLine2 ? (PlotIchimoku ? leadLine1 : na) : leadLine2, offset = displacement - 1, title = "Kumo Cloud Lower Line", display = display.none) 
+fill(p1, p2, color = leadLine1 > leadLine2 ? color.rgb(67, 160, 72, 70) : color.rgb(244, 67, 54, 70))
+
+
+//Hull Suite
+src1 = close
+string modeSwitch = "Hma"
+int length1 = 55
+float lengthMult = 1.0
+bool useHtf =false
+switchColor = true
+candleCol = false
+hullMovingAverage(_src1, _length1) => ta.wma(2 * ta.wma(_src1, _length1 / 2) - ta.wma(_src1, _length1), math.round(math.sqrt(_length1)))
+expHullMovingAverage(_src1, _length1) => ta.ema(2 * ta.ema(_src1, _length1 / 2) - ta.ema(_src1, _length1), math.round(math.sqrt(_length1)))
+triHullMovingAverage(_src1, _length1) => ta.wma(ta.wma(_src1, _length1 / 3) * 3 - ta.wma(_src1, _length1 / 2) - ta.wma(_src1, _length1), _length1)
+modeSelection(mode, _src1, _len) =>
+    if mode == "Hma"
+        hullMovingAverage(_src1, _len)
+    else if mode == "Ehma"
+        expHullMovingAverage(_src1, _len)
+    else if mode == "Thma"
+        triHullMovingAverage(_src1, _len / 2)
+    else
+        na
+
+_hull = modeSelection(modeSwitch, src1, int(length1 * lengthMult))
+HULL = useHtf ? request.security(syminfo.tickerid, htf, _hull) : _hull
+MHULL = HULL[0]
+SHULL = HULL[2]
+hullColor = switchColor ? (HULL > HULL[2] ? color.rgb(76, 175, 79, 31) : color.rgb(255, 82, 82, 31)) : color.orange
+Fi1 = plot(PlotHullSuite ? MHULL : na, title="MHULL", color=hullColor, linewidth=thicknessSwitch)
+Fi2 = plot(PlotHullSuite ? (visualSwitch ? SHULL : na) : na, title="SHULL", color=hullColor, linewidth=thicknessSwitch)
+fill(Fi1, Fi2, title="Band Filler", color=hullColor)
+barcolor(color = candleCol ? (switchColor ? hullColor : na) : na)
+
+
+
+
+
+
+
+
+
